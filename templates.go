@@ -1,17 +1,5 @@
 package main
 
-const SERVICE_TEMPLATE = `
-apiVersion: v1
-kind: Service
-metadata:
- name: {{ .Metadata.Name }}
-spec:
- selector:
-   app: {{ .Metadata.Name }}
- ports:
- - port: {{ .Spec.Port }}
-   targetPort: {{ .Spec.Port }}`
-
 const DEPLOYMENT_TEMPLATE = `
 apiVersion: apps/v1
 kind: Deployment

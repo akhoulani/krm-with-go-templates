@@ -15,19 +15,25 @@
 package main
 
 import (
-	"context"
-	"os"
-
 	"github.com/GoogleContainerTools/kpt-functions-sdk/go/fn"
 
-	"os"
-
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
-	"sigs.k8s.io/kustomize/kyaml/fn/framework/command"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework/parser"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+const SERVICE_TEMPLATE string = `
+apiVersion: v1
+kind: Service
+metadata:
+ name: {{ .Metadata.Name }}
+spec:
+ selector:
+   app: {{ .Metadata.Name }}
+ ports:
+ - port: {{ .Spec.Port }}
+   targetPort: {{ .Spec.Port }}`
 
 var _ fn.Runner = &YourFunction{}
 
@@ -68,27 +74,6 @@ func (r *YourFunction) Run(ctx *fn.Context, functionConfig *fn.KubeObject, items
 	return true
 }
 
-func main() {
-	config := &App{}
-	fn := framework.TemplateProcessor{
-		TemplateData:       config,
-		PostProcessFilters: []kio.Filter{kio.FilterFunc(filterAppFromResources)},
-		ResourceTemplates: []framework.ResourceTemplate{{
-			Templates: parser.TemplateStrings(DEPLOYMENT_TEMPLATE, SERVICE_TEMPLATE),
-		}},
-	}
-	cmd := command.Build(fn, command.StandaloneDisabled, false)
-	command.AddGenerateDockerfile(cmd)
-	if err := cmd.Execute(); err != nil {
-		os.Exit(1)
-	}
-
-	runner := fn.WithContext(context.Background(), &YourFunction{})
-	if err := fn.AsMain(runner); err != nil {
-		os.Exit(1)
-	}
-}
-
 func filterAppFromResources(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	var newNodes []*yaml.RNode
 	for i := range items {
@@ -104,4 +89,28 @@ func filterAppFromResources(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	}
 	items = newNodes
 	return items, nil
+}
+
+func main() {
+	config := &App{}
+	fn := framework.TemplateProcessor{
+		TemplateData:       config,
+		PostProcessFilters: []kio.Filter{kio.FilterFunc(filterAppFromResources)},
+		ResourceTemplates: []framework.ResourceTemplate{{
+			Templates: parser.TemplateStrings(DEPLOYMENT_TEMPLATE, SERVICE_TEMPLATE),
+		}},
+	}
+	/*
+	   cmd := command.Build(fn, command.StandaloneDisabled, false)
+	   command.AddGenerateDockerfile(cmd)
+
+	   	if err := cmd.Execute(); err != nil {
+	   		os.Exit(1)
+	   	}
+
+	   	runner := fn.WithContext(context.Background(), &YourFunction{})
+	   	if err := fn.AsMain(runner); err != nil {
+	   		os.Exit(1)
+	   	}
+	*/
 }
